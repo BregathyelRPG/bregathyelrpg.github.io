@@ -9018,3 +9018,6 @@ header > img {
 @media(prefers-reduced-motion:reduce) {
   #historyScene .rest-light,#historyScene .rest-embers i { animation:none; }
 }
+
+/* v1.0.1 — controles de balanceamento do Bestiário */
+.beast-balance-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:9px 0 14px}.beast-balance-tools small{flex:1;min-width:190px;opacity:.8}
