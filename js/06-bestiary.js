@@ -103,6 +103,58 @@ function beastTuneSpell(spell, level) {
     }
     return x;
 }
+// v1.0.2 — Balanceamento independente de habilidades das criaturas.
+// Não modifica SKILL_LIBRARY ou as habilidades dos jogadores.
+function beastSkillTier(level) {
+    const n = Math.max(1, Math.min(20, Math.trunc(Number(level) || 1)));
+    if (n >= 20) return { damage: { 8: 4 }, heal: { 8: 4 }, cost: 15, bonus: 5 };
+    if (n >= 17) return { damage: { 8: 4 }, heal: { 8: 3 }, cost: 12, bonus: 4 };
+    if (n >= 14) return { damage: { 6: 4 }, heal: { 8: 3 }, cost: 10, bonus: 4 };
+    if (n >= 10) return { damage: { 6: 3 }, heal: { 6: 3 }, cost: 7, bonus: 3 };
+    if (n >= 5) return { damage: { 4: 2 }, heal: { 6: 2 }, cost: 4, bonus: 2 };
+    return { damage: { 4: 1 }, heal: { 6: 1 }, cost: 2, bonus: 1 };
+}
+function beastTuneSkill(skill, level) {
+    const result = cloneItem(skill);
+    const tier = beastSkillTier(level);
+    for (const phase of [result.base, ...(result.progress || [])].filter(Boolean)) {
+        const effects = phase.effects || [];
+        let power = false;
+        for (const effect of effects) {
+            if (['Dano adicional à arma', 'Dano independente'].includes(effect.kind)) {
+                // Habilidades de múltiplos ataques podem ter dano extra zero intencional.
+                const hasDamage = Object.entries(effect.dice || {}).some(([key, value]) => key !== 'fixed' && Number(value) > 0) || Number(effect.dice?.fixed) > 0;
+                if (hasDamage) {
+                    effect.dice = { ...skillDice(), ...tier.damage };
+                    power = true;
+                }
+            } else if (['Restaurar PV', 'Restaurar PM'].includes(effect.kind)) {
+                effect.dice = { ...skillDice(), ...tier.heal };
+                power = true;
+            } else if (effect.kind === 'Bônus de atributo/estatística') {
+                // Preserva bônus negativos criados intencionalmente pelo mestre.
+                if (Number(effect.amount) > 0) effect.amount = tier.bonus;
+                power = true;
+            }
+            // Condições, chances, alvos, recargas e durações mantidos.
+        }
+        if (phase.costType === 'PM') {
+            // Respeita o custo zero de habilidades originalmente gratuitas.
+            if (Number(phase.cost) > 0) phase.cost = power ? tier.cost : Math.max(1, Math.ceil(tier.cost / 2));
+        } else if (phase.costType === 'PV' && Number(phase.cost) > 0) {
+            // Não converte consumo de PV em PM.
+            phase.cost = Math.max(1, Math.ceil(tier.cost / 2));
+        }
+    }
+    return result;
+}
+function beastRequiredPM(beast) {
+    const powers = [...(beast.learnedSkills || []), ...(beast.learnedSpells || [])];
+    const spellCosts = powers.flatMap(power => [power.base, ...(power.progress || [])].filter(Boolean))
+        .filter(phase => phase.costType === 'PM').map(phase => Math.max(0, Number(phase.cost) || 0));
+    const attackCosts = (beast.attacks || []).map(a => Math.max(0, Number(a.cost) || 0));
+    return Math.max(0, ...spellCosts, ...attackCosts);
+}
 function beastBalanceToLevel(x, target, fromLevel) {
     const source = Math.max(1, Math.min(20, Math.trunc(Number(fromLevel) || 1)));
     const level = Math.max(1, Math.min(20, Math.trunc(Number(target) || 1)));
@@ -125,6 +177,9 @@ function beastBalanceToLevel(x, target, fromLevel) {
         if ((atk.cost || 0) > 0) atk.cost = Math.max(1, Math.round(atk.cost * ratio));
     }
     x.learnedSpells = (x.learnedSpells || []).map(spell => beastTuneSpell(spell, level));
+    x.learnedSkills = (x.learnedSkills || []).map(skill => beastTuneSkill(skill, level));
+    const neededPM = beastRequiredPM(x);
+    if (neededPM > 0) x.mp = Math.max(x.mp, neededPM * 2, level * 3);
     x.level = level;
     x.balanceLevel = level;
     return JSON.stringify(x) !== before;
@@ -143,7 +198,9 @@ function beastStandardModels() {
         beast.equipment = items.map(beastPresetEquipment).filter(Boolean).map(x => cloneItem(x));
         beast.learnedSpells = magics.map(n => SPELL_LIBRARY.find(x => x.name === n)).filter(Boolean).map(x => beastTuneSpell(x, level));
         if (beast.learnedSpells.length && beast.mp === 0) beast.mp = Math.max(12, level * 3);
-        beast.learnedSkills = abilities.map(n => SKILL_LIBRARY.find(x => x.name === n)).filter(Boolean).map(x => cloneItem(x));
+        beast.learnedSkills = abilities.map(n => SKILL_LIBRARY.find(x => x.name === n)).filter(Boolean).map(x => beastTuneSkill(x, level));
+        const neededPM = beastRequiredPM(beast);
+        if (neededPM > 0) beast.mp = Math.max(beast.mp, neededPM * 2, level * 3);
         return beast;
     });
 }
@@ -178,7 +235,7 @@ function beastRead() {
 
 function beastForm() {
     const x = beastDraft;
-    beastDialog.innerHTML = `<form id="beastForm"><h2>${bestiary().some(b => b.id === x.id) ? 'Editar' : 'Cadastrar'} criatura</h2><div class="beast-heading"><img id="beastPreview" src="${beastImage(x)}" alt="Retrato"><div>${field('Nome', 'name', x.name, 'text', 'required maxlength="120"')}<button type="button" data-beast-art>Escolher retrato</button><label>Foto personalizada<input id="beastUpload" type="file" accept="image/*"></label></div></div><div class="beast-fields">${[['Nível', 'level', 1], ['PV máximo', 'hp', 1], ['PM máximo', 'mp', 0], ['CA', 'ca', 0], ['Iniciativa (bônus)', 'initiative', null], ['Deslocamento (m)', 'movement', 0]].map(([l, k, m]) => field(l, k, x[k], 'number', `required step="1" ${m === null ? '' : 'min="' + m + '"'}`)).join('')}</div><div class="beast-balance-tools"><button type="button" data-beast-balance>Balancear para este nível</button><small>Recalcula PV, PM, CA, atributos, ataques e dano/custo das magias somente nesta cópia. Confira os valores antes de salvar.</small></div><h3>Atributos</h3><div class="beast-fields">${names.map((n, i) => field(n, 'a' + i, x.attrs[i], 'number', 'required min="1" step="1"')).join('')}</div><label>Descrição<textarea name="description" rows="2">${esc(x.description)}</textarea></label>${`<section class="beast-section"><div class="beast-top"><h3>Equipamentos e consumíveis (${(x.equipment || []).length})</h3><button type="button" data-beast-equipment-add>+ Adicionar modelo</button></div>${(x.equipment || []).map((a,i) => `<div class="beast-entry"><span>${esc(a.name)} · ${esc(a.category)}</span><button type="button" data-beast-equipment-remove="${i}">Remover</button></div>`).join('') || '<small>Nenhum cadastrado.</small>'}</section>`}${[['Ataques', 'attacks', 'attack'], ['Habilidades', 'learnedSkills', 'skill'], ['Magias', 'learnedSpells', 'spell']].map(([label, key, kind]) => `<section class="beast-section"><div class="beast-top"><h3>${label} (${x[key].length})</h3><button type="button" data-beast-add="${kind}">+ Adicionar</button></div>${x[key].map((a, i) => `<div class="beast-entry ${kind !== 'attack' ? 'beast-power-entry' : ''}" ${kind !== 'attack' ? `data-beast-preview-kind="${kind}" data-index="${i}"` : ''}><span>${esc(a.name)}${kind === 'attack' ? ` · ${sign(a.hitBonus)} acerto · ${esc(diceText(a.dice))} dano` : ''}</span><button type="button" data-beast-action="${kind}" data-index="${i}">Editar</button><button type="button" data-beast-remove="${kind}" data-index="${i}">Remover</button></div>`).join('') || '<small>Nenhum cadastrado.</small>'}</section>`).join('')}<p id="beastError" role="alert"></p><div class="beast-bottom"><button type="submit">Salvar criatura</button>${bestiary().some(b => b.id === x.id) ? '<button type="button" data-beast-duplicate>Duplicar</button><button type="button" data-beast-delete>Excluir</button>' : ''}<button type="button" data-beast-back>Cancelar</button></div></form>`;
+    beastDialog.innerHTML = `<form id="beastForm"><h2>${bestiary().some(b => b.id === x.id) ? 'Editar' : 'Cadastrar'} criatura</h2><div class="beast-heading"><img id="beastPreview" src="${beastImage(x)}" alt="Retrato"><div>${field('Nome', 'name', x.name, 'text', 'required maxlength="120"')}<button type="button" data-beast-art>Escolher retrato</button><label>Foto personalizada<input id="beastUpload" type="file" accept="image/*"></label></div></div><div class="beast-fields">${[['Nível', 'level', 1], ['PV máximo', 'hp', 1], ['PM máximo', 'mp', 0], ['CA', 'ca', 0], ['Iniciativa (bônus)', 'initiative', null], ['Deslocamento (m)', 'movement', 0]].map(([l, k, m]) => field(l, k, x[k], 'number', `required step="1" ${m === null ? '' : 'min="' + m + '"'}`)).join('')}</div><div class="beast-balance-tools"><button type="button" data-beast-balance>Balancear para este nível</button><small>Recalcula PV, PM, CA, atributos, ataques, magias e habilidades (dano, cura, defesa e custos) somente nesta cópia. Confira os valores antes de salvar.</small></div><h3>Atributos</h3><div class="beast-fields">${names.map((n, i) => field(n, 'a' + i, x.attrs[i], 'number', 'required min="1" step="1"')).join('')}</div><label>Descrição<textarea name="description" rows="2">${esc(x.description)}</textarea></label>${`<section class="beast-section"><div class="beast-top"><h3>Equipamentos e consumíveis (${(x.equipment || []).length})</h3><button type="button" data-beast-equipment-add>+ Adicionar modelo</button></div>${(x.equipment || []).map((a,i) => `<div class="beast-entry"><span>${esc(a.name)} · ${esc(a.category)}</span><button type="button" data-beast-equipment-remove="${i}">Remover</button></div>`).join('') || '<small>Nenhum cadastrado.</small>'}</section>`}${[['Ataques', 'attacks', 'attack'], ['Habilidades', 'learnedSkills', 'skill'], ['Magias', 'learnedSpells', 'spell']].map(([label, key, kind]) => `<section class="beast-section"><div class="beast-top"><h3>${label} (${x[key].length})</h3><button type="button" data-beast-add="${kind}">+ Adicionar</button></div>${x[key].map((a, i) => `<div class="beast-entry ${kind !== 'attack' ? 'beast-power-entry' : ''}" ${kind !== 'attack' ? `data-beast-preview-kind="${kind}" data-index="${i}"` : ''}><span>${esc(a.name)}${kind === 'attack' ? ` · ${sign(a.hitBonus)} acerto · ${esc(diceText(a.dice))} dano` : ''}</span><button type="button" data-beast-action="${kind}" data-index="${i}">Editar</button><button type="button" data-beast-remove="${kind}" data-index="${i}">Remover</button></div>`).join('') || '<small>Nenhum cadastrado.</small>'}</section>`).join('')}<p id="beastError" role="alert"></p><div class="beast-bottom"><button type="submit">Salvar criatura</button>${bestiary().some(b => b.id === x.id) ? '<button type="button" data-beast-duplicate>Duplicar</button><button type="button" data-beast-delete>Excluir</button>' : ''}<button type="button" data-beast-back>Cancelar</button></div></form>`;
 }
 
 

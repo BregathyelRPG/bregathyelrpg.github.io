@@ -387,7 +387,7 @@ function heroStats(p) {
         base = compatible(p, armor) ? 10 + Rules.mod(a[({ Leve: 1, 'Média': 2, Pesada: 0 })[armor.armorType]]) : 10;
     const armorBonus = activeEquipment(p).reduce((n, x) => n + (['Armaduras', 'Escudos'].includes(x.category) ? number(x.ca) : 0), 0), caBonus = equipmentBonus(p, 'CA'), moveBonus = equipmentBonus(p, 'Deslocamento'), heavy = heavyPenalty(p);
     const rows = [{
-            label: 'CA', value: defenseCA(p), lines: [['Base pela classe/armadura', base], ['Armadura e escudo', sign(armorBonus)], ['Outros bônus de CA', sign(caBonus)], ['CA efetiva', defenseCA(p)]]
+            label: 'CA', value: defenseCA(p), lines: [['Base pela classe/armadura', base], ['Armadura e escudo', sign(armorBonus)], ['Bônus por nível', sign(playerLevelCABonus(p))], ['Outros bônus de CA', sign(caBonus)], ['CA efetiva', defenseCA(p)]]
         }];
     for (let i = 0; i < 6; i++) {
         const mod = Rules.mod(effectiveAttrs(p)[i]);

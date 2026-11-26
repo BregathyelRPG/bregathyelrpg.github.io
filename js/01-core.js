@@ -3,7 +3,7 @@
 // ==============================================================================
 // NÚCLEO — constantes, regras de atributos, estado e armazenamento
 // ==============================================================================
-const APP_VERSION = '1.0.1';
+const APP_VERSION = '1.0.2';
 const appVersionLabel = document.getElementById('appVersion');
 if (appVersionLabel)
     appVersionLabel.textContent = 'Bregathyel · v' + APP_VERSION;
@@ -960,13 +960,18 @@ $('file').onchange = async (e) => {
 // ==============================================================================
 // DEFESA
 // ==============================================================================
+// Progressão defensiva dos jogadores: +1 a cada 4 níveis, até +5 no nível 20.
+// Calculada em tempo real, sem gravar na ficha ou duplicar após importação.
+function playerLevelCABonus(p) {
+    return Math.min(5, Math.floor(Math.max(1, Math.min(20, Math.trunc(Number(p?.level) || 1))) / 4));
+}
 function defenseCA(p) {
     const a = effectiveAttrs(p), armor = equipment(p)[4], idx = { Mago: 3, Feiticeiro: 3, Bruxo: 3, Monge: 4, Druida: 4, 'Clérigo': 4, 'Bárbaro': 2, Bardo: 5 }[p.class];
     let base = 10 + (idx === undefined ? 0 : Rules.mod(a[idx]));
     if (armor && armor.armorType !== 'Vestimenta') {
         base = compatible(p, armor) ? 10 + Rules.mod(a[({ Leve: 1, 'Média': 2, Pesada: 0 })[armor.armorType]]) : 10;
     }
-    return Math.max(0, base + equipmentBonus(p, 'CA') + activeEquipment(p).reduce((n, x) => n + (['Armaduras', 'Escudos'].includes(x.category) ? number(x.ca) : 0), 0));
+    return Math.max(0, base + playerLevelCABonus(p) + equipmentBonus(p, 'CA') + activeEquipment(p).reduce((n, x) => n + (['Armaduras', 'Escudos'].includes(x.category) ? number(x.ca) : 0), 0));
 }
 
 

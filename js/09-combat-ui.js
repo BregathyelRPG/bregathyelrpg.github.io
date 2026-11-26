@@ -41,7 +41,7 @@ function heroStatsBreakdownCA(p) {
     let base = 10 + (attr === 'Nenhum' ? 0 : Rules.mod(a[names.indexOf(attr)]));
     if (armor && armor.armorType !== 'Vestimenta' && !compatible(p, armor)) base = 10;
     const armorBonus = activeEquipment(p).reduce((n, i) => n + (['Armaduras','Escudos'].includes(i.category) ? number(i.ca) : 0),0);
-    return [`Base de classe/armadura: ${base}`,`Armadura e escudo: ${sign(armorBonus)}`,`Outros bônus de equipamentos: ${sign(equipmentBonus(p,'CA'))}`];
+    return [`Base de classe/armadura: ${base}`,`Armadura e escudo: ${sign(armorBonus)}`,`Bônus de CA por nível: ${sign(playerLevelCABonus(p))}`,`Outros bônus de equipamentos: ${sign(equipmentBonus(p,'CA'))}`];
 }
 function tcgCard(x, a) {
     const d = arenaData(x);
