@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#100e0c">
+<title>Bregathyel v1.0.0</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body data-app-loading="true">
+<div id="storageLoading" role="status">Carregando campanha do Bregathyel…</div>
+<div id="storageStatus" role="status" aria-live="polite">Armazenamento local: iniciando…</div>
+<div id="campScene" aria-hidden="true"><div id="campArt"></div><div id="campShade"></div></div>
+<header><img src="assets/images/bregathyel_logo_v1.png" alt="Bregathyel">
+<nav><div class="menu"><button>Ficha ▾</button><div class="drop"><button data-act="new">+ Novo</button><div class="switch-wrap"><button type="button" id="switchButton">Trocar ▸</button><div id="switchList" class="switch-list"></div></div><button data-act="import">Importar</button><button data-act="export">Exportar ficha</button><button data-act="backup">Backup completo</button><button data-act="save">Salvar (Ctrl+S)</button><button data-act="delete">Excluir</button></div></div><div class="menu"><button>Área do Mestre ▾</button><div class="drop"><button data-act="arena">Arena de Batalha</button><button data-act="bestiary">Bestiário</button><button data-act="rest">Descansar</button><button data-act="journal">Diário e missões</button><button type="button" id="openDice">Rolar dados</button></div></div><div class="menu settings-menu" id="settingsMenu"><button type="button" id="settingsTrigger" aria-expanded="false" aria-controls="settingsDrop">⚙ Configurações ▾</button><div class="drop" id="settingsDrop"><button type="button" id="themeSwitch" data-act="theme" role="switch" aria-checked="true" class="theme-switch"><span>Modo Escuro</span><span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span></button><button data-act="tutorial">Tutorial</button><button data-act="history">História</button><label>Volume <input id="volume" type="range" min="0" max="100" value="70"></label></div></div></nav>
+</header>
+<main id="characterSheet">
+<section class="panel hero"><div><div class="portrait" title="Arraste uma poção ou alimento restaurador da Mochila para usar aqui"><img id="portrait" src="assets/images/7590dbbda5ce18705c0ac50f.webp" alt="Retrato"><button class="upload" data-act="photo" data-tip="Enviar retrato">⇧</button></div><div class="level" id="level"><button data-act="level-">‹</button><span id="levelText"></span><button data-act="level+">›</button></div></div><div class="center"><div class="identity"><div><h1 id="name"></h1><p id="identity"></p></div><div class="bars" id="bars"></div></div><div class="stats" id="stats"></div><div id="heroConditions" class="hero-conditions-inline" role="group" aria-label="Condições do personagem"></div></div><div class="wallet"><div class="coins" id="coins"></div><div class="kills" id="killsControl" role="button" tabindex="0" aria-label="Gerenciar inimigos derrotados"><img src="assets/images/0ce7b31ba264c441335e9433.webp" alt="Caveira"><span id="kills"></span></div></div></section>
+<div class="tabs" id="tabs"></div>
+<section class="panel" id="content"></section>
+<section class="panel attributes" id="attributes"></section>
+<small id="appVersion" class="app-version"></small></main>
+<button type="button" id="campToggle" aria-controls="characterSheet" aria-expanded="true" aria-label="Recolher ficha para ver o acampamento">▴ Recolher ficha</button><input hidden type="file" id="file" accept=".json,application/json"><input hidden type="file" id="photo" accept="image/*">
+<dialog id="modal"></dialog>
+<dialog id="coinDialog" aria-label="Gerenciar moedas"></dialog>
+<dialog id="killDialog" aria-label="Gerenciar inimigos derrotados"></dialog>
+<dialog id="siteDialog" aria-labelledby="siteDialogTitle"><form method="dialog" id="siteDialogForm"><h2 id="siteDialogTitle"></h2><p id="siteDialogMessage" hidden></p><input type="number" step="1" id="siteDialogValue" class="dialog-value" aria-label="Valor" hidden disabled><div class="dialog-actions"><button id="siteDialogOK" value="ok" type="submit">OK</button><button id="siteDialogCancel" value="cancel" type="button">Cancelar</button></div></form></dialog>
+<dialog id="diceDialog" aria-labelledby="diceTitle"><h2 id="diceTitle">Rolar dados</h2><div class="dice-pick" id="dicePick"></div><div class="dice-toolbar"><button type="button" id="diceClear" aria-label="Limpar a mesa de dados">Limpar mesa</button></div><div class="dice-stage" id="diceStage"><span>Toque em um dado para lançá-lo.</span></div><div id="diceSummary" class="roll-summary" aria-live="polite"></div><div class="dice-actions"><button type="button" id="diceRoll">Rolar novamente</button><button type="button" id="diceApplyPrice" hidden disabled>Aplicar valor</button><button type="button" id="arenaDamageNext" hidden>Rolar dano</button><button type="button" id="diceClose">Fechar</button></div></dialog>
+<div id="notice" class="notice" hidden></div>
+<script src="js/00-storage.js"></script>
+<script src="js/01-core.js"></script>
+<script src="js/02-dice.js"></script>
+<script src="js/03-inventory.js"></script>
+<script src="js/04-powers.js"></script>
+<script src="js/merchant-dialogues.js"></script>
+<script src="js/05-market.js"></script>
+<script src="js/06-bestiary.js"></script>
+<script src="js/07-arena.js"></script>
+<script src="js/08-backup.js"></script>
+<script src="js/09-combat-ui.js"></script>
+<script src="js/10-libraries.js"></script>
+<script src="js/11-rewards.js"></script>
+<script src="js/12-journal.js"></script>
+<script src="js/13-ui-polish.js"></script>
+<script src="js/14-history.js"></script>
+</body>
+</html>
