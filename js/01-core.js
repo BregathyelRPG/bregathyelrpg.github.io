@@ -3,7 +3,7 @@
 // ==============================================================================
 // NÚCLEO — constantes, regras de atributos, estado e armazenamento
 // ==============================================================================
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.0.1';
 const appVersionLabel = document.getElementById('appVersion');
 if (appVersionLabel)
     appVersionLabel.textContent = 'Bregathyel · v' + APP_VERSION;
